@@ -1,0 +1,70 @@
+name: Linear Claude Code
+
+on:
+  repository_dispatch:
+    types: [linear-claude-trigger]
+
+jobs:
+  claude-implementation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Notify Slack — job started
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+        run: |
+          curl -s -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\": \"$SLACK_CHANNEL_ID\", \"text\": \":hammer_and_wrench: Claude runner started for ${{ github.event.client_payload.issue_identifier }}\"}"
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            You have been triggered by a Linear issue.
+
+            Issue: ${{ github.event.client_payload.issue_identifier }}
+            Title: ${{ github.event.client_payload.issue_title }}
+            URL: ${{ github.event.client_payload.issue_url }}
+
+            Comment that triggered this:
+            ${{ github.event.client_payload.comment_body }}
+
+            Please implement the changes described above.
+            Open a pull request with your changes when done.
+
+      - name: Notify Slack — done
+        if: success()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\": \"$SLACK_CHANNEL_ID\", \"text\": \":white_check_mark: Claude finished ${{ github.event.client_payload.issue_identifier }}. PR open. $RUN_URL\"}"
+
+      - name: Notify Slack — failed
+        if: failure()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\": \"$SLACK_CHANNEL_ID\", \"text\": \":x: Claude failed on ${{ github.event.client_payload.issue_identifier }}. $RUN_URL\"}"
