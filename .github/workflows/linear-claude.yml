@@ -34,6 +34,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: true
           allowed_tools: "Bash,Edit,Write,Read,Glob,Grep,LS,mcp__github__create_pull_request,mcp__github__create_branch,mcp__github__push_files,mcp__github__get_file_contents,mcp__github__list_branches,mcp__github__search_code"
+          claude_args: |
+            --dangerously-skip-permissions
           prompt: |
             Linear issue: ${{ github.event.client_payload.issue_title }}
             URL: ${{ github.event.client_payload.issue_url }}
