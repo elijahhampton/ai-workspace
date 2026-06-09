@@ -39,5 +39,8 @@ jobs:
           prompt: |
             Linear issue: ${{ github.event.client_payload.issue_title }}
             URL: ${{ github.event.client_payload.issue_url }}
+            
+            Description:
+            ${{ github.event.client_payload.issue_description }}
 
-            Please implement the changes described above and open a pull request when done.
+            Please implement the changes described above. Follow the conventions in CLAUDE.md. Use the PULL_REQUEST_TEMPLATE.md file when opening the pull request.
