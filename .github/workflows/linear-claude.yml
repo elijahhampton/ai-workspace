@@ -20,6 +20,8 @@ jobs:
       repository-projects: write
       security-events: write
       statuses: write
+    outputs:
+      pr_url: ${{ steps.get_pr.outputs.pr_url }}
 
     steps:
       - name: Checkout repository
@@ -39,8 +41,42 @@ jobs:
           prompt: |
             Linear issue: ${{ github.event.client_payload.issue_title }}
             URL: ${{ github.event.client_payload.issue_url }}
-            
+
             Description:
             ${{ github.event.client_payload.issue_description }}
 
             Please implement the changes described above. Follow the conventions in CLAUDE.md. Use the PULL_REQUEST_TEMPLATE.md file when opening the pull request.
+
+      - name: Get PR URL
+        id: get_pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sleep 5
+          PR_URL=$(gh pr list --head "$(git branch --show-current)" --json url --jq '.[0].url' 2>/dev/null || echo "")
+          if [ -z "$PR_URL" ]; then
+            PR_URL=$(gh pr list --state open --json url,headRefName --jq '[.[] | select(.headRefName | startswith("feature/"))] | sort_by(.url) | last | .url' 2>/dev/null || echo "")
+          fi
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+
+  notify-linear:
+    runs-on: ubuntu-latest
+    needs: claude-implementation
+    if: always()
+    steps:
+      - name: Post comment to Linear
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          PR_URL: ${{ needs.claude-implementation.outputs.pr_url }}
+          ISSUE_ID: ${{ github.event.client_payload.issue_id }}
+        run: |
+          if [ -n "$PR_URL" ]; then
+            COMMENT="🤖 Claude opened a PR: $PR_URL"
+          else
+            COMMENT="🤖 Claude finished working but could not open a PR. Check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+          fi
+
+          curl -s -X POST https://api.linear.app/graphql \
+            -H "Authorization: $LINEAR_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": \"mutation { commentCreate(input: { issueId: \\\"$ISSUE_ID\\\", body: \\\"$COMMENT\\\" }) { success } }\"}"
