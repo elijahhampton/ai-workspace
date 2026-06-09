@@ -11,6 +11,7 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/health", handlers.HealthHandler)
 	mux.HandleFunc("/users", handlers.UsersHandler)
 	mux.HandleFunc("/users/", handlers.UserByIDHandler)
 	mux.HandleFunc("/products", handlers.ProductsHandler)

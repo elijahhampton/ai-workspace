@@ -6,6 +6,7 @@ A simple REST API for managing users and products.
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | /health | Health check, returns `{"status":"ok"}` |
 | GET | /users | List all users (supports `?is_active=true/false`) |
 | POST | /users | Create a new user |
 | GET | /users/:id | Get user by ID |
