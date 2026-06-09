@@ -54,11 +54,26 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 func createUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
 		return
 	}
 
-	// Missing validation — no check for empty name or invalid email
+	if user.Name == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "name must be non-empty"})
+		return
+	}
+
+	if !strings.Contains(user.Email, "@") {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "email must contain @"})
+		return
+	}
+
 	users = append(users, user)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
