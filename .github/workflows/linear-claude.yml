@@ -32,7 +32,7 @@ jobs:
       - name: Checkout knowledge base
         uses: actions/checkout@v4
         with:
-          repository: elijahhampton/elijahhampton/claude-knowledge-repo
+          repository: elijahhampton/claude-knowledge-repo
           token: ${{ secrets.KNOWLEDGE_BASE_TOKEN }}
           path: knowledge-base
 
