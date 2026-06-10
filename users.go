@@ -66,11 +66,34 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserByIDHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		getUserByID(w, r)
+	case http.MethodDelete:
+		deleteUser(w, r)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func getUserByID(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/users/")
 	for _, u := range users {
 		if u.ID == id {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(u)
+			return
+		}
+	}
+	http.Error(w, "user not found", http.StatusNotFound)
+}
+
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimPrefix(r.URL.Path, "/users/")
+	for i, u := range users {
+		if u.ID == id {
+			users = append(users[:i], users[i+1:]...)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 	}
